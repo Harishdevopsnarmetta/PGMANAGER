@@ -1,0 +1,1296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#080c18">
+<meta name="mobile-web-app-capable" content="true">
+<meta name="apple-mobile-web-app-capable" content="true">
+<meta name="apple-mobile-web-app-title" content="PGManager">
+<title>PGManager — Hostel & PG Management</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey:"AIzaSyD2jdY8IbFon3HTBzLLDrcfJwaIPfyzjO4",
+  authDomain:"feastnow-10576.firebaseapp.com",
+  projectId:"feastnow-10576",
+  storageBucket:"feastnow-10576.firebasestorage.app",
+  messagingSenderId:"59738911240",
+  appId:"1:59738911240:web:727b247d12630566bf97bd"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db   = firebase.firestore();
+</script>
+<style>
+:root{
+  --bg:#080c18;--bg-card:#0f1528;--bg-surf:#151c32;--bg-lift:#1b2540;
+  --accent:#6366f1;--accent2:#818cf8;--accent-dim:rgba(99,102,241,0.14);--accent-glow:rgba(99,102,241,0.28);
+  --paid:#22d3a0;--paid-dim:rgba(34,211,160,0.12);--paid-glow:rgba(34,211,160,0.2);
+  --pending:#f59e0b;--pending-dim:rgba(245,158,11,0.12);--pending-glow:rgba(245,158,11,0.2);
+  --vacant:#5b9cf6;--vacant-dim:rgba(91,156,246,0.12);
+  --occupied:#a78bfa;--occupied-dim:rgba(167,139,250,0.12);
+  --danger:#ff4d6d;--danger-dim:rgba(255,77,109,0.12);
+  --text:#eef2f7;--muted:#7a8fa8;--dim:#384d66;
+  --border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.11);
+  --pad:clamp(14px,4vw,20px);--r:clamp(14px,4vw,18px);
+  --shadow:0 4px 24px rgba(0,0,0,0.4);--shadow-pop:0 8px 48px rgba(0,0,0,0.55);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{width:100%;min-height:100vh;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:15px;line-height:1.5;overflow-x:hidden;}
+h1,h2,h3,.syne{font-family:'Syne',sans-serif;}
+::selection{background:var(--accent-dim);}
+
+/* ── LOADING ── */
+#loadScreen{position:fixed;inset:0;z-index:999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;transition:opacity .4s;}
+#loadScreen.hide{opacity:0;pointer-events:none;}
+.load-logo{width:72px;height:72px;border-radius:22px;background:linear-gradient(135deg,#6366f1,#818cf8);display:flex;align-items:center;justify-content:center;font-size:34px;box-shadow:0 0 0 8px var(--accent-dim),0 0 48px var(--accent-glow);animation:pulse 2s ease-in-out infinite;}
+.spinner{width:32px;height:32px;border:3px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 8px var(--accent-dim),0 0 48px var(--accent-glow)}50%{box-shadow:0 0 0 14px rgba(99,102,241,0.07),0 0 64px rgba(99,102,241,0.35)}}
+
+/* ── AUTH ── */
+#authScreen{display:none;min-height:100vh;align-items:center;justify-content:center;flex-direction:column;padding:40px var(--pad);
+  background:radial-gradient(ellipse at 75% 8%,rgba(99,102,241,0.1),transparent 52%),
+             radial-gradient(ellipse at 15% 92%,rgba(167,139,250,0.08),transparent 52%),var(--bg);}
+.auth-logo{width:76px;height:76px;border-radius:24px;background:linear-gradient(135deg,#6366f1 0%,#818cf8 60%,#a78bfa 100%);display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 18px;box-shadow:0 0 0 10px var(--accent-dim),0 0 52px var(--accent-glow);animation:fadeUp .5s ease both;}
+.auth-title{font-size:clamp(28px,8vw,36px);font-weight:800;letter-spacing:-1.2px;text-align:center;animation:fadeUp .5s .08s ease both;}
+.auth-title span{color:var(--accent);}
+.auth-sub{font-size:13px;color:var(--muted);text-align:center;margin:8px 0 26px;line-height:1.75;animation:fadeUp .5s .15s ease both;}
+.auth-card{width:100%;max-width:420px;background:var(--bg-card);border:1px solid var(--border2);border-radius:24px;padding:24px;box-shadow:var(--shadow-pop);animation:fadeUp .5s .2s ease both;}
+.auth-tabs{display:flex;background:var(--bg-surf);border-radius:13px;padding:4px;margin-bottom:20px;}
+.auth-tab{flex:1;padding:10px;text-align:center;font-size:14px;font-weight:600;color:var(--dim);border-radius:10px;cursor:pointer;transition:all .22s;font-family:'Syne',sans-serif;letter-spacing:.1px;}
+.auth-tab.active{background:var(--accent);color:#fff;box-shadow:0 4px 16px var(--accent-glow);}
+.form-input{width:100%;background:var(--bg-surf);border:1.5px solid var(--border2);border-radius:13px;padding:13px 16px;font-size:15px;color:var(--text);font-family:'DM Sans',sans-serif;outline:none;margin-bottom:12px;transition:border-color .2s,box-shadow .2s;}
+.form-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim);}
+.form-input::placeholder{color:var(--dim);}
+select.form-input option{background:var(--bg-card);}
+.form-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:6px;display:block;font-family:'Syne',sans-serif;}
+.btn{width:100%;background:var(--accent);color:#fff;border:none;border-radius:13px;padding:14px;font-size:15px;font-weight:700;font-family:'Syne',sans-serif;cursor:pointer;box-shadow:0 6px 24px var(--accent-glow);transition:transform .15s,box-shadow .15s;letter-spacing:.2px;margin-bottom:0;}
+.btn:hover{transform:translateY(-2px);box-shadow:0 10px 32px var(--accent-glow);}
+.btn:active{transform:scale(.98);}
+.btn-outline{background:transparent;border:1.5px solid var(--border2);color:var(--muted);box-shadow:none;}
+.btn-outline:hover{border-color:var(--accent);color:var(--text);box-shadow:none;transform:none;}
+.btn-danger{background:var(--danger);box-shadow:0 6px 24px rgba(255,77,109,0.25);}
+.btn-danger:hover{box-shadow:0 10px 32px rgba(255,77,109,0.3);}
+.btn-paid{background:var(--paid);color:#071a14;box-shadow:0 4px 18px var(--paid-glow);}
+.btn-paid:hover{box-shadow:0 8px 28px var(--paid-glow);}
+.btn-sm{padding:8px 16px;font-size:13px;width:auto;display:inline-flex;align-items:center;gap:6px;}
+
+
+.auth-err{font-size:13px;color:var(--danger);text-align:center;min-height:18px;margin-top:8px;font-weight:500;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── PENDING ── */
+#pendingScreen{display:none;min-height:100vh;align-items:center;justify-content:center;flex-direction:column;padding:40px var(--pad);text-align:center;gap:16px;}
+
+/* ── APP SHELL ── */
+#adminApp,#ownerApp{display:none;}
+.header{background:rgba(8,12,24,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);padding:max(env(safe-area-inset-top),44px) var(--pad) 0;position:sticky;top:0;z-index:100;border-bottom:1px solid var(--border);}
+.header-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+.logo{font-size:clamp(18px,4.8vw,22px);font-weight:800;letter-spacing:-.5px;}
+.logo span{color:var(--accent);}
+.logo-sub{font-size:11px;color:var(--muted);font-weight:400;letter-spacing:.5px;font-family:'DM Sans',sans-serif;}
+.avatar-btn{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;cursor:pointer;border:2px solid rgba(255,255,255,0.15);flex-shrink:0;transition:transform .2s;}
+.avatar-btn:hover{transform:scale(1.08);}
+.nav-tabs{display:flex;overflow-x:auto;scrollbar-width:none;gap:0;}
+.nav-tabs::-webkit-scrollbar{display:none;}
+.nav-tab{padding:11px clamp(14px,3.5vw,20px);font-size:13px;font-weight:600;color:var(--dim);cursor:pointer;white-space:nowrap;border-bottom:2.5px solid transparent;background:none;border-top:none;border-left:none;border-right:none;transition:color .2s,border-color .2s;font-family:'DM Sans',sans-serif;}
+.nav-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.content{padding:clamp(12px,3vw,16px) var(--pad) 110px;}
+.tab-content{display:none;animation:fadeIn .22s ease both;}
+.tab-content.active{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── HERO CARD ── */
+.hero-card{background:linear-gradient(135deg,var(--bg-card),var(--bg-lift));border:1px solid var(--border2);border-radius:clamp(18px,5vw,24px);padding:var(--pad);margin-bottom:16px;position:relative;overflow:hidden;box-shadow:var(--shadow);}
+.hero-card::before{content:'';position:absolute;top:-50px;right:-50px;width:160px;height:160px;background:radial-gradient(circle,var(--accent-glow),transparent 68%);border-radius:50%;pointer-events:none;}
+.hero-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;font-weight:700;}
+.hero-val{font-size:clamp(34px,10vw,48px);font-weight:800;letter-spacing:-2px;margin:6px 0 4px;line-height:1;}
+.hero-sub{font-size:13px;color:var(--muted);}
+
+/* ── STAT GRID ── */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(8px,2vw,12px);margin-bottom:16px;}
+.stat-card{background:var(--bg-card);border:1px solid var(--border2);border-radius:var(--r);padding:clamp(13px,3.5vw,17px);box-shadow:var(--shadow);overflow:hidden;position:relative;}
+.stat-accent{position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--r) var(--r) 0 0;}
+.stat-icon{font-size:22px;margin-bottom:8px;}
+.stat-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:700;font-family:'Syne',sans-serif;}
+.stat-val{font-size:clamp(20px,5.5vw,26px);font-weight:800;font-family:'Syne',sans-serif;letter-spacing:-1px;margin-top:4px;}
+
+/* ── SECTION TITLE ── */
+.sec-title{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin:20px 0 12px;display:flex;align-items:center;gap:8px;}
+.sec-title::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* ── ROOM GRID ── */
+.room-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(clamp(88px,22vw,108px),1fr));gap:10px;margin-bottom:8px;}
+.room-card{background:var(--bg-card);border:1.5px solid var(--border);border-radius:18px;padding:14px 10px 12px;text-align:center;cursor:pointer;transition:transform .2s,border-color .2s,box-shadow .2s;box-shadow:var(--shadow);position:relative;overflow:hidden;}
+.room-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-pop);}
+.room-card.vacant{border-color:rgba(91,156,246,0.35);}
+.room-card.vacant::before{content:'';position:absolute;inset:0;background:var(--vacant-dim);opacity:.6;}
+.room-card.occupied{border-color:rgba(167,139,250,0.35);}
+.room-card.occupied::before{content:'';position:absolute;inset:0;background:var(--occupied-dim);opacity:.6;}
+.room-num{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;position:relative;letter-spacing:-.5px;}
+.room-type-txt{font-size:10px;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:.5px;position:relative;}
+.room-status-dot{width:8px;height:8px;border-radius:50%;margin:7px auto 0;position:relative;}
+.room-card.vacant .room-status-dot{background:var(--vacant);box-shadow:0 0 6px var(--vacant);}
+.room-card.occupied .room-status-dot{background:var(--occupied);box-shadow:0 0 6px var(--occupied);}
+.room-rent-txt{font-size:10px;color:var(--dim);margin-top:4px;position:relative;}
+
+/* ── LIST ITEMS ── */
+.list-item{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r);padding:clamp(13px,3.5vw,16px);margin-bottom:10px;display:flex;align-items:center;gap:13px;cursor:pointer;transition:border-color .2s,transform .2s,box-shadow .2s;box-shadow:var(--shadow);position:relative;}
+.list-item:hover{border-color:var(--border2);transform:translateY(-2px);box-shadow:var(--shadow-pop);}
+.list-item::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:3px;transition:all .2s;}
+.list-item.paid-item::before{background:var(--paid);}
+.list-item.pending-item::before{background:var(--pending);}
+
+.item-av{width:44px;height:44px;border-radius:14px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;font-family:'Syne',sans-serif;}
+.av-tenant{background:var(--accent-dim);border:1px solid rgba(99,102,241,0.2);color:var(--accent);}
+.av-pg{background:var(--paid-dim);border:1px solid rgba(34,211,160,0.2);color:var(--paid);}
+
+.item-body{flex:1;min-width:0;}
+.item-name{font-size:15px;font-weight:700;letter-spacing:-.1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.item-meta{font-size:12px;color:var(--muted);margin-top:3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.item-right{text-align:right;flex-shrink:0;}
+
+/* ── BADGES ── */
+.badge{font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;display:inline-block;font-family:'Syne',sans-serif;letter-spacing:.3px;}
+.badge-paid{background:var(--paid-dim);color:var(--paid);}
+.badge-pending{background:var(--pending-dim);color:var(--pending);}
+.badge-vacant{background:var(--vacant-dim);color:var(--vacant);}
+.badge-occupied{background:var(--occupied-dim);color:var(--occupied);}
+.badge-accent{background:var(--accent-dim);color:var(--accent);}
+.badge-admin{background:var(--accent-dim);color:var(--accent2);}
+.badge-owner{background:var(--paid-dim);color:var(--paid);}
+
+/* ── PG CARD (admin) ── */
+.pg-card{background:var(--bg-card);border:1px solid var(--border2);border-radius:var(--r);padding:18px;margin-bottom:12px;cursor:pointer;transition:border-color .2s,transform .2s,box-shadow .2s;box-shadow:var(--shadow);}
+.pg-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:var(--shadow-pop);}
+.pg-card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+.pg-name{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;letter-spacing:-.3px;}
+.pg-addr{font-size:12px;color:var(--muted);margin-top:4px;}
+.pg-pills{display:flex;gap:7px;flex-wrap:wrap;}
+
+/* ── MONTH SELECTOR ── */
+.month-sel{display:flex;align-items:center;justify-content:space-between;background:var(--bg-card);border:1px solid var(--border2);border-radius:16px;padding:12px 16px;margin-bottom:16px;box-shadow:var(--shadow);}
+.month-nav{background:var(--bg-surf);border:none;color:var(--text);width:36px;height:36px;border-radius:10px;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;transition:background .2s;}
+.month-nav:hover{background:var(--bg-lift);}
+.month-name{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;letter-spacing:-.3px;}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0);pointer-events:none;display:flex;flex-direction:column;justify-content:flex-end;transition:background .3s;}
+.modal-overlay.open{background:rgba(0,0,0,0.65);pointer-events:all;}
+.modal-sheet{background:var(--bg-card);border-radius:28px 28px 0 0;padding:0 var(--pad) max(env(safe-area-inset-bottom),32px);max-height:93vh;overflow-y:auto;transform:translateY(100%);transition:transform .36s cubic-bezier(.4,0,.2,1);box-shadow:0 -8px 52px rgba(0,0,0,0.55);}
+.modal-overlay.open .modal-sheet{transform:translateY(0);}
+.modal-handle{width:40px;height:4px;background:var(--dim);border-radius:2px;margin:14px auto 20px;opacity:.5;}
+.modal-title{font-size:19px;font-weight:800;margin-bottom:20px;letter-spacing:-.3px;}
+.form-group{margin-bottom:14px;}
+.input-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.sub-btn{width:100%;padding:14px;border-radius:13px;font-size:15px;font-weight:700;font-family:'Syne',sans-serif;cursor:pointer;border:none;margin-bottom:8px;transition:transform .15s,box-shadow .15s;}
+.sub-btn:active{transform:scale(.98);}
+.sub-btn-primary{background:var(--accent);color:#fff;box-shadow:0 6px 24px var(--accent-glow);}
+.sub-btn-primary:hover{transform:translateY(-1px);box-shadow:0 10px 32px var(--accent-glow);}
+.sub-btn-ghost{background:transparent;border:1.5px solid var(--border2);color:var(--muted);}
+
+/* ── DETAIL SHEET ── */
+#detailSheet{position:fixed;inset:0;z-index:550;background:rgba(0,0,0,0);pointer-events:none;display:flex;flex-direction:column;justify-content:flex-end;transition:background .3s;}
+#detailSheet.open{background:rgba(0,0,0,0.65);pointer-events:all;}
+.detail-card{background:var(--bg-card);border-radius:28px 28px 0 0;padding:0 var(--pad) max(env(safe-area-inset-bottom),32px);max-height:92vh;overflow-y:auto;transform:translateY(100%);transition:transform .36s cubic-bezier(.4,0,.2,1);box-shadow:0 -8px 52px rgba(0,0,0,0.55);}
+#detailSheet.open .detail-card{transform:translateY(0);}
+.detail-hero{display:flex;flex-direction:column;align-items:center;padding:8px 0 24px;border-bottom:1px solid var(--border);}
+.detail-av{width:72px;height:72px;border-radius:22px;background:var(--accent-dim);border:1px solid rgba(99,102,241,0.2);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:800;color:var(--accent);font-family:'Syne',sans-serif;margin-bottom:12px;}
+.detail-name{font-size:20px;font-weight:800;letter-spacing:-.5px;}
+.detail-rows{padding:16px 0 8px;}
+.detail-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border);}
+.detail-row:last-child{border-bottom:none;}
+.dr-label{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px;}
+.dr-val{font-size:14px;font-weight:600;text-align:right;max-width:55%;}
+.detail-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px;}
+
+/* ── CONFIRM ── */
+#confirmOverlay{position:fixed;inset:0;z-index:700;background:rgba(0,0,0,0.72);display:none;align-items:center;justify-content:center;padding:var(--pad);}
+#confirmOverlay.open{display:flex;}
+.confirm-box{background:var(--bg-card);border:1px solid var(--border2);border-radius:24px;padding:28px 24px;max-width:340px;width:100%;text-align:center;box-shadow:var(--shadow-pop);}
+.confirm-icon{font-size:44px;margin-bottom:14px;}
+.confirm-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:8px;}
+.confirm-msg{font-size:13px;color:var(--muted);margin-bottom:24px;line-height:1.65;}
+.confirm-btns{display:flex;gap:10px;}
+.confirm-btns .sub-btn{margin-bottom:0;}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:clamp(90px,22vw,110px);left:50%;transform:translateX(-50%) translateY(20px);background:var(--bg-lift);border:1px solid var(--border2);color:var(--text);padding:11px 22px;border-radius:24px;font-size:13px;font-weight:600;opacity:0;transition:all .3s;z-index:800;white-space:nowrap;box-shadow:var(--shadow-pop);pointer-events:none;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ── FAB ── */
+.fab{position:fixed;bottom:clamp(24px,6vw,36px);right:var(--pad);background:var(--accent);color:#fff;border:none;border-radius:18px;padding:14px 22px;font-size:14px;font-weight:700;font-family:'Syne',sans-serif;cursor:pointer;box-shadow:0 6px 28px var(--accent-glow);transition:transform .2s,box-shadow .2s;display:flex;align-items:center;gap:8px;z-index:200;}
+.fab:hover{transform:translateY(-3px);box-shadow:0 10px 36px var(--accent-glow);}
+.fab:active{transform:scale(.97);}
+
+/* ── EMPTY ── */
+.empty{text-align:center;padding:clamp(48px,14vw,72px) var(--pad);}
+.empty-icon{font-size:clamp(48px,13vw,64px);opacity:.5;margin-bottom:14px;}
+.empty-text{font-size:15px;color:var(--muted);font-weight:500;}
+.empty-sub{font-size:13px;color:var(--dim);margin-top:6px;}
+
+/* ── RENT SUMMARY BAR ── */
+.rent-summary{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+.rs-card{background:var(--bg-card);border-radius:16px;padding:14px;border:1px solid var(--border);}
+.rs-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-bottom:5px;}
+.rs-val{font-size:20px;font-weight:800;font-family:'Syne',sans-serif;letter-spacing:-1px;}
+
+/* ── PROGRESS BAR ── */
+.progress-wrap{background:rgba(255,255,255,0.06);border-radius:6px;height:7px;overflow:hidden;margin-top:10px;}
+.progress-fill{height:100%;border-radius:6px;transition:width .6s cubic-bezier(.4,0,.2,1);}
+
+/* ── OWNER ROW ── */
+.owner-row{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r);padding:15px 16px;margin-bottom:10px;display:flex;align-items:center;gap:13px;box-shadow:var(--shadow);}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loadScreen">
+  <div class="load-logo">🏠</div>
+  <div class="spinner"></div>
+  <div style="font-size:13px;color:var(--muted);font-family:'Syne',sans-serif;">PGManager</div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- CONFIRM -->
+<div id="confirmOverlay">
+  <div class="confirm-box">
+    <div class="confirm-icon" id="confirmIcon">⚠️</div>
+    <div class="confirm-title" id="confirmTitle">Are you sure?</div>
+    <div class="confirm-msg" id="confirmMsg">This cannot be undone.</div>
+    <div class="confirm-btns">
+      <button class="sub-btn sub-btn-ghost" onclick="closeConfirm()">Cancel</button>
+      <button class="sub-btn btn-danger" id="confirmYes">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- AUTH -->
+<div id="authScreen" style="display:none;flex-direction:column;">
+  <div class="auth-logo">🏠</div>
+  <div class="auth-title">PG<span>Manager</span></div>
+  <div class="auth-sub">Smart hostel & PG management<br>for owners who mean business</div>
+  <div class="auth-card">
+    <div class="auth-tabs">
+      <div class="auth-tab active" onclick="switchAuthTab('login',this)">Sign In</div>
+      <div class="auth-tab" onclick="switchAuthTab('signup',this)">Sign Up</div>
+    </div>
+    <div id="loginForm">
+      <input class="form-input" type="email" id="lEmail" placeholder="Email address">
+      <input class="form-input" type="password" id="lPass" placeholder="Password">
+      <button class="btn" onclick="doLogin()">Sign In</button>
+      <div style="text-align:center;margin-top:12px;">
+        <span style="font-size:13px;color:var(--muted);cursor:pointer;" onclick="showForgot()">Forgot password?</span>
+      </div>
+    </div>
+    <div id="signupForm" style="display:none;">
+      <input class="form-input" type="text" id="sName" placeholder="Your full name">
+      <input class="form-input" type="email" id="sEmail" placeholder="Email address">
+      <input class="form-input" type="password" id="sPass" placeholder="Password (min 6 chars)">
+      <button class="btn" onclick="doSignup()">Create Account</button>
+    </div>
+
+    <div class="auth-err" id="authErr"></div>
+  </div>
+</div>
+
+<!-- PENDING ACCESS -->
+<div id="pendingScreen" style="display:none;flex-direction:column;">
+  <div style="font-size:56px;margin-bottom:8px;">⏳</div>
+  <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;">Waiting for Access</div>
+  <div style="font-size:14px;color:var(--muted);max-width:300px;line-height:1.7;margin-top:8px;">Your account is registered but not yet assigned to a PG. Contact your admin to get access.</div>
+  <div id="pendingEmail" style="font-size:12px;color:var(--dim);margin-top:12px;"></div>
+  <button class="btn btn-outline btn-sm" style="margin-top:24px;width:auto;" onclick="doSignOut()">Sign Out</button>
+</div>
+
+<!-- ══════════ ADMIN APP ══════════ -->
+<div id="adminApp">
+  <div class="header">
+    <div class="header-top">
+      <div>
+        <div class="logo">PG<span>Manager</span></div>
+        <div class="logo-sub">Super Admin</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="avatar-btn" id="adminAvatar" onclick="doSignOut()">A</div>
+      </div>
+    </div>
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="adminTab('dashboard',this)">Dashboard</button>
+      <button class="nav-tab" onclick="adminTab('pgs',this)">My PGs</button>
+      <button class="nav-tab" onclick="adminTab('owners',this)">Owners</button>
+    </div>
+  </div>
+  <div class="content">
+    <!-- Dashboard -->
+    <div id="admin-dashboard" class="tab-content active">
+      <div class="hero-card">
+        <div class="hero-label">Total PGs Managed</div>
+        <div class="hero-val syne" id="adTotalPGs">0</div>
+        <div class="hero-sub" id="adHeroSub">Loading...</div>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-accent" style="background:var(--vacant)"></div><div class="stat-icon">🚪</div><div class="stat-label">Total Rooms</div><div class="stat-val" id="adTotalRooms">0</div></div>
+        <div class="stat-card"><div class="stat-accent" style="background:var(--occupied)"></div><div class="stat-icon">👤</div><div class="stat-label">Tenants</div><div class="stat-val" id="adTotalTenants">0</div></div>
+        <div class="stat-card"><div class="stat-accent" style="background:var(--paid)"></div><div class="stat-icon">💰</div><div class="stat-label">Owners</div><div class="stat-val" id="adTotalOwners">0</div></div>
+        <div class="stat-card"><div class="stat-accent" style="background:var(--pending)"></div><div class="stat-icon">📊</div><div class="stat-label">Occupancy</div><div class="stat-val" id="adOccupancy">0%</div></div>
+      </div>
+      <div class="sec-title">Recent PGs</div>
+      <div id="adRecentPGs"></div>
+    </div>
+    <!-- PGs -->
+    <div id="admin-pgs" class="tab-content">
+      <div class="sec-title">All PGs</div>
+      <div id="adPGList"></div>
+    </div>
+    <!-- Owners -->
+    <div id="admin-owners" class="tab-content">
+      <div class="sec-title">PG Owners</div>
+      <div id="adOwnerList"></div>
+    </div>
+  </div>
+  <button class="fab" id="adminFab" onclick="openAdminAdd()">+ Add PG</button>
+</div>
+
+<!-- ══════════ OWNER APP ══════════ -->
+<div id="ownerApp">
+  <div class="header">
+    <div class="header-top">
+      <div>
+        <div class="logo">PG<span>Manager</span></div>
+        <div class="logo-sub" id="ownerPGName">Loading...</div>
+      </div>
+      <div class="avatar-btn" id="ownerAvatar" onclick="doSignOut()">O</div>
+    </div>
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="ownerTab('dashboard',this)">Home</button>
+      <button class="nav-tab" onclick="ownerTab('rooms',this)">Rooms</button>
+      <button class="nav-tab" onclick="ownerTab('tenants',this)">Tenants</button>
+      <button class="nav-tab" onclick="ownerTab('rent',this)">Rent</button>
+    </div>
+  </div>
+  <div class="content">
+    <!-- Dashboard -->
+    <div id="owner-dashboard" class="tab-content active">
+      <div class="hero-card">
+        <div class="hero-label">This Month's Collection</div>
+        <div class="hero-val syne" id="owHeroVal">₹0</div>
+        <div class="hero-sub" id="owHeroSub">Loading...</div>
+        <div class="progress-wrap" style="margin-top:14px;"><div class="progress-fill" id="owHeroBar" style="background:var(--paid);width:0%"></div></div>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-accent" style="background:var(--vacant)"></div><div class="stat-icon">🚪</div><div class="stat-label">Total Rooms</div><div class="stat-val" id="owTotalRooms">0</div></div>
+        <div class="stat-card"><div class="stat-accent" style="background:var(--occupied)"></div><div class="stat-icon">🟣</div><div class="stat-label">Occupied</div><div class="stat-val" id="owOccupied">0</div></div>
+        <div class="stat-card"><div class="stat-accent" style="background:var(--paid)"></div><div class="stat-icon">✅</div><div class="stat-label">Paid</div><div class="stat-val" id="owPaid">0</div></div>
+        <div class="stat-card"><div class="stat-accent" style="background:var(--pending)"></div><div class="stat-icon">⏳</div><div class="stat-label">Pending</div><div class="stat-val" id="owPending">0</div></div>
+      </div>
+      <div class="sec-title">Pending Rent</div>
+      <div id="owPendingList"></div>
+    </div>
+    <!-- Rooms -->
+    <div id="owner-rooms" class="tab-content">
+      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+        <span class="badge badge-vacant" style="padding:6px 14px;font-size:12px;">🔵 Vacant: <span id="vacantCnt">0</span></span>
+        <span class="badge badge-occupied" style="padding:6px 14px;font-size:12px;">🟣 Occupied: <span id="occupiedCnt">0</span></span>
+      </div>
+      <div class="room-grid" id="roomGrid"></div>
+    </div>
+    <!-- Tenants -->
+    <div id="owner-tenants" class="tab-content">
+      <div id="tenantList"></div>
+    </div>
+    <!-- Rent -->
+    <div id="owner-rent" class="tab-content">
+      <div class="month-sel">
+        <button class="month-nav" onclick="changeRentMonth(-1)">‹</button>
+        <div class="month-name" id="rentMonthLabel">Month Year</div>
+        <button class="month-nav" onclick="changeRentMonth(1)">›</button>
+      </div>
+      <div class="rent-summary">
+        <div class="rs-card"><div class="rs-label">Collected</div><div class="rs-val" style="color:var(--paid)" id="rentCollected">₹0</div></div>
+        <div class="rs-card"><div class="rs-label">Pending</div><div class="rs-val" style="color:var(--pending)" id="rentDue">₹0</div></div>
+      </div>
+      <div class="progress-wrap" style="margin-bottom:16px;"><div class="progress-fill" id="rentBar" style="background:var(--paid);width:0%"></div></div>
+      <div class="sec-title">Rent Status</div>
+      <div id="rentList"></div>
+    </div>
+  </div>
+  <!-- FAB changes per tab -->
+  <button class="fab" id="ownerFab" onclick="ownerFabClick()">+ Add Room</button>
+</div>
+
+<!-- ══════════ MODALS ══════════ -->
+
+<!-- ADD PG (admin) -->
+<div class="modal-overlay" id="modalAddPG">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🏠 Add New PG</div>
+    <div class="form-group"><label class="form-label">PG / Hostel Name</label><input class="form-input" id="pgName" placeholder="e.g. Sri Sai PG, Green Valley Hostel"></div>
+    <div class="form-group"><label class="form-label">Address</label><input class="form-input" id="pgAddr" placeholder="Street, Area, City"></div>
+    <div class="form-group"><label class="form-label">Assign Owner (email)</label><input class="form-input" type="email" id="pgOwnerEmail" placeholder="owner@email.com (optional)"></div>
+    <button class="sub-btn sub-btn-primary" onclick="savePG()">Create PG</button>
+    <button class="sub-btn sub-btn-ghost" onclick="closeModal('AddPG')">Cancel</button>
+  </div>
+</div>
+
+<!-- ADD OWNER (admin) -->
+<div class="modal-overlay" id="modalAddOwner">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">👤 Add Owner</div>
+    <div class="form-group"><label class="form-label">Owner Name</label><input class="form-input" id="ownerName" placeholder="Full name"></div>
+    <div class="form-group"><label class="form-label">Email Address</label><input class="form-input" type="email" id="ownerEmail" placeholder="owner@email.com"></div>
+    <div class="form-group"><label class="form-label">Assign PG</label>
+      <select class="form-input" id="ownerPGSelect"></select>
+    </div>
+    <button class="sub-btn sub-btn-primary" onclick="saveOwner()">Add Owner</button>
+    <button class="sub-btn sub-btn-ghost" onclick="closeModal('AddOwner')">Cancel</button>
+  </div>
+</div>
+
+<!-- ADD ROOM -->
+<div class="modal-overlay" id="modalAddRoom">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🚪 Add Room</div>
+    <div class="input-row">
+      <div class="form-group"><label class="form-label">Room No.</label><input class="form-input" id="rNum" placeholder="e.g. 101, G1"></div>
+      <div class="form-group"><label class="form-label">Floor</label><input class="form-input" id="rFloor" placeholder="e.g. Ground, 1st"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Type</label>
+      <select class="form-input" id="rType">
+        <option value="Single">Single (1 person)</option>
+        <option value="Double">Double (2 persons)</option>
+        <option value="Triple">Triple (3 persons)</option>
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Monthly Rent (₹)</label><input class="form-input" type="number" id="rRent" placeholder="e.g. 6000" inputmode="numeric"></div>
+    <button class="sub-btn sub-btn-primary" onclick="saveRoom()">Add Room</button>
+    <button class="sub-btn sub-btn-ghost" onclick="closeModal('AddRoom')">Cancel</button>
+  </div>
+</div>
+
+<!-- ADD TENANT -->
+<div class="modal-overlay" id="modalAddTenant">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">👤 Add Tenant</div>
+    <div class="form-group"><label class="form-label">Full Name</label><input class="form-input" id="tName" placeholder="Tenant's full name"></div>
+    <div class="form-group"><label class="form-label">Phone Number</label><input class="form-input" type="tel" id="tPhone" placeholder="10-digit mobile number" inputmode="tel"></div>
+    <div class="form-group"><label class="form-label">Assign Room</label>
+      <select class="form-input" id="tRoomSel"></select>
+    </div>
+    <div class="input-row">
+      <div class="form-group"><label class="form-label">Move-In Date</label><input class="form-input" type="date" id="tMoveIn"></div>
+      <div class="form-group"><label class="form-label">Security Deposit ₹</label><input class="form-input" type="number" id="tDeposit" placeholder="0" inputmode="numeric"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Monthly Rent ₹ (overrides room)</label><input class="form-input" type="number" id="tRent" placeholder="Leave blank to use room rent" inputmode="numeric"></div>
+    <button class="sub-btn sub-btn-primary" onclick="saveTenant()">Add Tenant</button>
+    <button class="sub-btn sub-btn-ghost" onclick="closeModal('AddTenant')">Cancel</button>
+  </div>
+</div>
+
+<!-- MARK RENT PAID -->
+<div class="modal-overlay" id="modalMarkPaid">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="markPaidTitle">💰 Mark as Paid</div>
+    <div style="background:var(--bg-surf);border-radius:14px;padding:14px;margin-bottom:16px;">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:4px;">Tenant</div>
+      <div style="font-size:16px;font-weight:700;" id="markPaidTenantName">—</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:8px;margin-bottom:4px;">Amount Due</div>
+      <div style="font-size:22px;font-weight:800;font-family:'Syne',sans-serif;color:var(--paid);" id="markPaidAmount">₹0</div>
+    </div>
+    <div class="form-group"><label class="form-label">Paid Date</label><input class="form-input" type="date" id="paidDate"></div>
+    <div class="form-group"><label class="form-label">Notes (optional)</label><input class="form-input" id="paidNote" placeholder="e.g. Cash, UPI, bank transfer"></div>
+    <button class="sub-btn sub-btn-primary btn-paid" onclick="confirmMarkPaid()">✅ Confirm Payment</button>
+    <button class="sub-btn sub-btn-ghost" onclick="closeModal('MarkPaid')">Cancel</button>
+  </div>
+</div>
+
+<!-- TENANT DETAIL SHEET -->
+<div id="detailSheet">
+  <div class="detail-card">
+    <div class="modal-handle"></div>
+    <div class="detail-hero">
+      <div class="detail-av" id="detailAv">T</div>
+      <div class="detail-name" id="detailName">Tenant</div>
+      <div style="margin-top:8px;" id="detailBadge"></div>
+    </div>
+    <div class="detail-rows" id="detailRows"></div>
+    <div class="detail-actions" id="detailActions"></div>
+  </div>
+</div>
+
+<!-- FORGOT PASSWORD MODAL -->
+<div class="modal-overlay" id="modalForgot">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🔑 Reset Password</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.7;">Enter your email address and we'll send you a link to reset your password.</p>
+    <div class="form-group">
+      <label class="form-label">Email Address</label>
+      <input class="form-input" type="email" id="forgotEmail" placeholder="your@email.com">
+    </div>
+    <div id="forgotMsg" style="font-size:13px;min-height:18px;margin-bottom:10px;text-align:center;font-weight:500;"></div>
+    <button class="sub-btn sub-btn-primary" onclick="sendReset()">Send Reset Link</button>
+    <button class="sub-btn sub-btn-ghost" onclick="closeModal('Forgot')">Cancel</button>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════
+   STATE
+════════════════════════════════════ */
+let currentUser  = null;
+let userProfile  = null;
+let currentPG    = null;
+let allRooms     = [];
+let allTenants   = [];
+let allPGs       = [];
+let allOwners    = [];
+let unsubRooms   = null;
+let unsubTenants = null;
+let activeOwnerTab = 'dashboard';
+let activeAdminTab = 'dashboard';
+let rentMonth    = new Date().getMonth();
+let rentYear     = new Date().getFullYear();
+let currentDetailId = null;
+let pendingMarkPaid = null;
+
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const MSHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+/* ════════════════════════════════════
+   UTILS
+════════════════════════════════════ */
+function fmt(n){ return '₹'+Number(n||0).toLocaleString('en-IN'); }
+function today(){ return new Date().toISOString().slice(0,10); }
+function initials(name){ return (name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase(); }
+
+let _toastTimer;
+function toast(msg, color){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.borderColor = color || 'var(--border2)';
+  el.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(()=>el.classList.remove('show'), 2800);
+}
+
+function openModal(id){ document.getElementById('modal'+id).classList.add('open'); }
+function closeModal(id){ document.getElementById('modal'+id).classList.remove('open'); }
+
+let _confirmCb = null;
+function showConfirm(icon,title,msg,cb){
+  document.getElementById('confirmIcon').textContent = icon;
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmMsg').textContent = msg;
+  _confirmCb = cb;
+  document.getElementById('confirmOverlay').classList.add('open');
+}
+function closeConfirm(){ document.getElementById('confirmOverlay').classList.remove('open'); _confirmCb=null; }
+document.getElementById('confirmYes').onclick = ()=>{ closeConfirm(); if(_confirmCb)_confirmCb(); };
+
+function showScreen(id){
+  ['authScreen','pendingScreen','adminApp','ownerApp'].forEach(s=>{
+    const el=document.getElementById(s);
+    if(el) el.style.display='none';
+  });
+  const target = document.getElementById(id);
+  if(target) target.style.display = (id==='authScreen'||id==='pendingScreen') ? 'flex' : 'block';
+  document.getElementById('loadScreen').classList.add('hide');
+}
+
+/* ════════════════════════════════════
+   AUTH
+════════════════════════════════════ */
+function switchAuthTab(tab, el){
+  document.querySelectorAll('.auth-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('loginForm').style.display  = tab==='login'  ? 'block':'none';
+  document.getElementById('signupForm').style.display = tab==='signup' ? 'block':'none';
+  document.getElementById('authErr').textContent = '';
+}
+
+async function doLogin(){
+  const email = document.getElementById('lEmail').value.trim();
+  const pass  = document.getElementById('lPass').value;
+  document.getElementById('authErr').textContent='';
+  try{ await auth.signInWithEmailAndPassword(email,pass); }
+  catch(e){ document.getElementById('authErr').textContent=e.message; }
+}
+async function doSignup(){
+  const name  = document.getElementById('sName').value.trim();
+  const email = document.getElementById('sEmail').value.trim();
+  const pass  = document.getElementById('sPass').value;
+  document.getElementById('authErr').textContent='';
+  if(!name){ document.getElementById('authErr').textContent='Enter your name'; return; }
+  try{
+    const cred = await auth.createUserWithEmailAndPassword(email,pass);
+    await cred.user.updateProfile({displayName:name});
+  }catch(e){ document.getElementById('authErr').textContent=e.message; }
+}
+
+async function doSignOut(){
+  if(unsubRooms)  unsubRooms();
+  if(unsubTenants)unsubTenants();
+  await auth.signOut();
+  showScreen('authScreen');
+}
+
+function showForgot(){
+  const email = document.getElementById('lEmail').value.trim();
+  if(email) document.getElementById('forgotEmail').value = email;
+  document.getElementById('forgotMsg').textContent = '';
+  document.getElementById('forgotMsg').style.color = 'var(--muted)';
+  openModal('Forgot');
+}
+
+async function sendReset(){
+  const email = document.getElementById('forgotEmail').value.trim();
+  const msg = document.getElementById('forgotMsg');
+  if(!email){ msg.style.color='var(--danger)'; msg.textContent='Enter your email address'; return; }
+  try{
+    await auth.sendPasswordResetEmail(email);
+    msg.style.color = 'var(--paid)';
+    msg.textContent = '✅ Reset link sent! Check your inbox.';
+    setTimeout(()=>closeModal('Forgot'), 2500);
+  }catch(e){
+    msg.style.color = 'var(--danger)';
+    msg.textContent = e.message;
+  }
+}
+
+/* ════════════════════════════════════
+   AUTH STATE
+════════════════════════════════════ */
+// Set auth persistence to LOCAL so session survives page reloads
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(console.error);
+
+// Safety timeout — if Firebase doesn't respond in 8s, show auth screen
+const authTimeout = setTimeout(()=>{
+  if(!document.getElementById('loadScreen').classList.contains('hide')){
+    showScreen('authScreen');
+  }
+}, 8000);
+
+auth.onAuthStateChanged(async user=>{
+  clearTimeout(authTimeout);
+  if(!user){ showScreen('authScreen'); return; }
+  currentUser = user;
+  await loadProfile(user);
+});
+
+async function loadProfile(user){
+  // Show a loading message so user knows something is happening
+  document.getElementById('loadScreen').classList.remove('hide');
+  document.getElementById('loadScreen').querySelector('div:last-child').textContent = 'Loading your profile...';
+  try{
+    let snap = await db.collection('pgm_users').doc(user.uid).get();
+    if(!snap.exists){
+      // Check if any users exist — first user = superadmin
+      const first = await db.collection('pgm_users').limit(1).get();
+      if(first.empty){
+        // Create superadmin profile
+        await db.collection('pgm_users').doc(user.uid).set({
+          name: user.displayName || user.email.split('@')[0],
+          email: user.email, role:'superadmin',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        snap = await db.collection('pgm_users').doc(user.uid).get();
+      } else {
+        document.getElementById('pendingEmail').textContent='Signed in as: '+user.email;
+        showScreen('pendingScreen'); return;
+      }
+    }
+    userProfile = snap.data();
+    if(userProfile.role==='superadmin') await initAdmin(user);
+    else if(userProfile.role==='owner') await initOwner(user);
+    else { document.getElementById('pendingEmail').textContent='Signed in as: '+user.email; showScreen('pendingScreen'); }
+  }catch(e){
+    console.error('loadProfile error:', e);
+    // Show the ACTUAL error to the user instead of silently going to login
+    showScreen('authScreen');
+    const errEl = document.getElementById('authErr');
+    if(e.code === 'permission-denied'){
+      errEl.textContent = '⚠️ Firestore rules blocking access. Fix rules in Firebase Console.';
+    } else if(e.code === 'unavailable' || e.message?.includes('network')){
+      errEl.textContent = '⚠️ No internet connection. Please check your network.';
+    } else {
+      errEl.textContent = '⚠️ Error: ' + (e.message || e.code || 'Unknown error');
+    }
+  }
+}
+
+/* ════════════════════════════════════
+   ADMIN
+════════════════════════════════════ */
+async function initAdmin(user){
+  const av = document.getElementById('adminAvatar');
+  av.textContent = initials(userProfile.name||user.email);
+  showScreen('adminApp');
+  loadAdminData();
+}
+
+async function loadAdminData(){
+  // Load all PGs
+  const pgSnap = await db.collection('pgm_pgs').get();
+  allPGs = pgSnap.docs.map(d=>({id:d.id,...d.data()}));
+  // Load all owners
+  const owSnap = await db.collection('pgm_users').where('role','==','owner').get();
+  allOwners = owSnap.docs.map(d=>({id:d.id,...d.data()}));
+  // Load all rooms & tenants for stats
+  const roomSnap = await db.collection('pgm_rooms').get();
+  const tenantSnap = await db.collection('pgm_tenants').where('status','==','active').get();
+  const rooms   = roomSnap.docs.map(d=>d.data());
+  const tenants = tenantSnap.docs.map(d=>d.data());
+  const occupied = rooms.filter(r=>r.status==='occupied').length;
+  const occ = rooms.length ? Math.round(occupied/rooms.length*100) : 0;
+
+  document.getElementById('adTotalPGs').textContent     = allPGs.length;
+  document.getElementById('adHeroSub').textContent      = allOwners.length+' owner'+(allOwners.length!==1?'s':'')+' · '+rooms.length+' rooms total';
+  document.getElementById('adTotalRooms').textContent   = rooms.length;
+  document.getElementById('adTotalTenants').textContent = tenants.length;
+  document.getElementById('adTotalOwners').textContent  = allOwners.length;
+  document.getElementById('adOccupancy').textContent    = occ+'%';
+
+  renderAdminPGs();
+  renderAdminOwners();
+}
+
+function renderAdminPGs(){
+  const list = document.getElementById('adPGList');
+  const recent = document.getElementById('adRecentPGs');
+  if(!allPGs.length){
+    list.innerHTML = recent.innerHTML = `<div class="empty"><div class="empty-icon">🏠</div><div class="empty-text">No PGs yet</div><div class="empty-sub">Tap + to add your first PG</div></div>`;
+    return;
+  }
+  const html = allPGs.map(pg=>`
+    <div class="pg-card">
+      <div class="pg-card-top">
+        <div>
+          <div class="pg-name">${pg.name}</div>
+          <div class="pg-addr">📍 ${pg.address||'—'}</div>
+        </div>
+        <button onclick="deletePG('${pg.id}','${pg.name}')" style="background:var(--danger-dim);border:none;color:var(--danger);border-radius:10px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;">Delete</button>
+      </div>
+      <div class="pg-pills">
+        <span class="badge badge-accent">ID: ${pg.id.slice(0,6)}</span>
+        ${pg.ownerEmail?`<span class="badge badge-owner">👤 ${pg.ownerEmail}</span>`:'<span class="badge" style="background:var(--pending-dim);color:var(--pending);">No owner</span>'}
+      </div>
+    </div>`).join('');
+  list.innerHTML = html;
+  recent.innerHTML = allPGs.slice(0,3).map(pg=>`
+    <div class="pg-card">
+      <div class="pg-name">${pg.name}</div>
+      <div class="pg-addr">📍 ${pg.address||'—'}</div>
+      <div class="pg-pills" style="margin-top:8px;">
+        ${pg.ownerEmail?`<span class="badge badge-owner">👤 ${pg.ownerEmail}</span>`:'<span class="badge badge-pending">No owner assigned</span>'}
+      </div>
+    </div>`).join('');
+}
+
+function renderAdminOwners(){
+  const list = document.getElementById('adOwnerList');
+  if(!allOwners.length){
+    list.innerHTML=`<div class="empty"><div class="empty-icon">👤</div><div class="empty-text">No owners yet</div><div class="empty-sub">Add owners so they can log in and manage PGs</div></div>`;
+    return;
+  }
+  list.innerHTML = allOwners.map(ow=>{
+    const pg = allPGs.find(p=>p.id===ow.pgId);
+    return `<div class="owner-row">
+      <div class="item-av av-tenant">${initials(ow.name)}</div>
+      <div class="item-body">
+        <div class="item-name">${ow.name}</div>
+        <div class="item-meta">${ow.email} · ${pg?pg.name:'No PG assigned'}</div>
+      </div>
+      <span class="badge badge-owner">Owner</span>
+    </div>`;
+  }).join('');
+}
+
+function adminTab(tab, el){
+  activeAdminTab = tab;
+  document.querySelectorAll('#adminApp .nav-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('#adminApp .tab-content').forEach(t=>t.classList.remove('active'));
+  document.getElementById('admin-'+tab).classList.add('active');
+  document.getElementById('adminFab').textContent = tab==='owners' ? '+ Add Owner' : '+ Add PG';
+}
+
+function openAdminAdd(){
+  if(activeAdminTab==='owners'){
+    // populate PG select
+    const sel = document.getElementById('ownerPGSelect');
+    sel.innerHTML='<option value="">— No PG —</option>'+allPGs.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+    openModal('AddOwner');
+  } else {
+    openModal('AddPG');
+  }
+}
+
+async function savePG(){
+  const name  = document.getElementById('pgName').value.trim();
+  const addr  = document.getElementById('pgAddr').value.trim();
+  const email = document.getElementById('pgOwnerEmail').value.trim();
+  if(!name){ toast('Enter PG name'); return; }
+  try{
+    const data = { name, address:addr, ownerEmail:email||null, createdAt:firebase.firestore.FieldValue.serverTimestamp() };
+    await db.collection('pgm_pgs').add(data);
+    // If email given, try to assign
+    if(email){
+      const uSnap = await db.collection('pgm_users').where('email','==',email).limit(1).get();
+      if(!uSnap.empty){
+        const uid = uSnap.docs[0].id;
+        const pgId = (await db.collection('pgm_pgs').where('name','==',name).limit(1).get()).docs[0]?.id;
+        if(pgId) await db.collection('pgm_users').doc(uid).update({pgId, role:'owner'});
+      }
+    }
+    toast('PG created! 🏠');
+    closeModal('AddPG');
+    ['pgName','pgAddr','pgOwnerEmail'].forEach(id=>document.getElementById(id).value='');
+    loadAdminData();
+  }catch(e){ toast('Error: '+e.message); }
+}
+
+async function saveOwner(){
+  const name  = document.getElementById('ownerName').value.trim();
+  const email = document.getElementById('ownerEmail').value.trim();
+  const pgId  = document.getElementById('ownerPGSelect').value;
+  if(!name||!email){ toast('Enter name and email'); return; }
+  try{
+    // Check if user already exists
+    const uSnap = await db.collection('pgm_users').where('email','==',email).limit(1).get();
+    if(!uSnap.empty){
+      await uSnap.docs[0].ref.update({name, role:'owner', pgId:pgId||null});
+    } else {
+      await db.collection('pgm_users').add({name, email, role:'owner', pgId:pgId||null, createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+    }
+    // Update PG's ownerEmail
+    if(pgId) await db.collection('pgm_pgs').doc(pgId).update({ownerEmail:email});
+    toast('Owner added! 👤');
+    closeModal('AddOwner');
+    ['ownerName','ownerEmail'].forEach(id=>document.getElementById(id).value='');
+    loadAdminData();
+  }catch(e){ toast('Error: '+e.message); }
+}
+
+async function deletePG(pgId, name){
+  showConfirm('🗑️','Delete PG','Delete "'+name+'"? All rooms and tenants will be removed.',async()=>{
+    await db.collection('pgm_pgs').doc(pgId).delete();
+    // cascade delete rooms & tenants
+    const rSnap = await db.collection('pgm_rooms').where('pgId','==',pgId).get();
+    rSnap.docs.forEach(d=>d.ref.delete());
+    const tSnap = await db.collection('pgm_tenants').where('pgId','==',pgId).get();
+    tSnap.docs.forEach(d=>d.ref.delete());
+    toast('PG deleted');
+    loadAdminData();
+  });
+}
+
+/* ════════════════════════════════════
+   OWNER
+════════════════════════════════════ */
+async function initOwner(user){
+  const av = document.getElementById('ownerAvatar');
+  av.textContent = initials(userProfile.name||user.email);
+  if(!userProfile.pgId){ showScreen('pendingScreen'); return; }
+  // Load PG info
+  const pgSnap = await db.collection('pgm_pgs').doc(userProfile.pgId).get();
+  currentPG = pgSnap.exists ? {id:pgSnap.id,...pgSnap.data()} : null;
+  if(!currentPG){ showScreen('pendingScreen'); return; }
+  document.getElementById('ownerPGName').textContent = currentPG.name;
+  document.title = 'PGManager — '+currentPG.name;
+  showScreen('ownerApp');
+  setupListeners();
+  updateRentLabel();
+}
+
+function setupListeners(){
+  if(unsubRooms)  unsubRooms();
+  if(unsubTenants)unsubTenants();
+  unsubRooms = db.collection('pgm_rooms').where('pgId','==',currentPG.id)
+    .onSnapshot(snap=>{
+      allRooms = snap.docs.map(d=>({id:d.id,...d.data()}));
+      renderOwnerDashboard();
+      renderRooms();
+      renderRent();
+    });
+  unsubTenants = db.collection('pgm_tenants').where('pgId','==',currentPG.id).where('status','==','active')
+    .onSnapshot(snap=>{
+      allTenants = snap.docs.map(d=>({id:d.id,...d.data()}));
+      renderOwnerDashboard();
+      renderTenants();
+      renderRent();
+    });
+}
+
+/* ── OWNER TAB ── */
+function ownerTab(tab, el){
+  activeOwnerTab = tab;
+  document.querySelectorAll('#ownerApp .nav-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('#ownerApp .tab-content').forEach(t=>t.classList.remove('active'));
+  document.getElementById('owner-'+tab).classList.add('active');
+  const fab = document.getElementById('ownerFab');
+  const labels={dashboard:'+ Quick Add',rooms:'+ Add Room',tenants:'+ Add Tenant',rent:'+ Add Tenant'};
+  fab.textContent = labels[tab]||'+ Add';
+  if(tab==='rent') renderRent();
+}
+function ownerFabClick(){
+  if(activeOwnerTab==='rooms'){ openAddRoom(); }
+  else if(activeOwnerTab==='tenants'||activeOwnerTab==='rent'||activeOwnerTab==='dashboard'){ openAddTenant(); }
+}
+
+/* ── DASHBOARD ── */
+async function renderOwnerDashboard(){
+  const occupied = allRooms.filter(r=>r.status==='occupied').length;
+  document.getElementById('owTotalRooms').textContent = allRooms.length;
+  document.getElementById('owOccupied').textContent   = occupied;
+  // Rent stats for current month
+  const payments = await getMonthPayments(rentMonth, rentYear);
+  const paid     = payments.filter(p=>p.status==='paid');
+  const pending  = payments.filter(p=>p.status==='pending');
+  const paidAmt  = paid.reduce((s,p)=>s+p.amount,0);
+  const totalAmt = payments.reduce((s,p)=>s+p.amount,0);
+  const pct      = totalAmt ? Math.round(paidAmt/totalAmt*100) : 0;
+  document.getElementById('owPaid').textContent     = paid.length;
+  document.getElementById('owPending').textContent  = pending.length;
+  document.getElementById('owHeroVal').textContent  = fmt(paidAmt);
+  document.getElementById('owHeroSub').textContent  = MONTHS[rentMonth]+' '+rentYear+' · '+pct+'% collected';
+  document.getElementById('owHeroBar').style.width  = pct+'%';
+  // Pending list
+  const pList = document.getElementById('owPendingList');
+  if(!pending.length){
+    pList.innerHTML=`<div class="empty" style="padding:24px var(--pad)"><div class="empty-icon" style="font-size:32px;">🎉</div><div class="empty-text">All rent collected for ${MSHORT[rentMonth]}!</div></div>`;
+    return;
+  }
+  pList.innerHTML = pending.map(p=>`
+    <div class="list-item pending-item">
+      <div class="item-av av-tenant">${initials(p.tenantName)}</div>
+      <div class="item-body">
+        <div class="item-name">${p.tenantName}</div>
+        <div class="item-meta">Room ${p.roomNumber} · ${MSHORT[rentMonth]} ${rentYear}</div>
+      </div>
+      <div class="item-right">
+        <div style="font-size:15px;font-weight:800;font-family:'Syne',sans-serif;color:var(--pending);">${fmt(p.amount)}</div>
+        <button onclick="openMarkPaid('${p.id}')" class="btn btn-sm btn-paid" style="margin-top:6px;">Pay</button>
+      </div>
+    </div>`).join('');
+}
+
+/* ── ROOMS ── */
+function renderRooms(){
+  const vacant   = allRooms.filter(r=>r.status==='vacant').length;
+  const occupied = allRooms.filter(r=>r.status==='occupied').length;
+  document.getElementById('vacantCnt').textContent   = vacant;
+  document.getElementById('occupiedCnt').textContent = occupied;
+  const grid = document.getElementById('roomGrid');
+  if(!allRooms.length){
+    grid.innerHTML=`<div class="empty" style="grid-column:1/-1;"><div class="empty-icon">🚪</div><div class="empty-text">No rooms yet</div><div class="empty-sub">Tap + to add rooms</div></div>`;
+    return;
+  }
+  allRooms.sort((a,b)=>String(a.number).localeCompare(String(b.number),undefined,{numeric:true}));
+  grid.innerHTML = allRooms.map(r=>`
+    <div class="room-card ${r.status}" onclick="openRoomDetail('${r.id}')">
+      <div class="room-num">${r.number}</div>
+      <div class="room-type-txt">${r.type}</div>
+      <div class="room-status-dot"></div>
+      <div class="room-rent-txt">${fmt(r.monthlyRent)}/mo</div>
+    </div>`).join('');
+}
+
+function openRoomDetail(roomId){
+  const room = allRooms.find(r=>r.id===roomId);
+  if(!room) return;
+  currentDetailId = roomId;
+  const tenant = allTenants.find(t=>t.roomId===roomId);
+  document.getElementById('detailAv').textContent     = room.number;
+  document.getElementById('detailAv').style.fontSize  = '24px';
+  document.getElementById('detailName').textContent   = 'Room '+room.number;
+  document.getElementById('detailBadge').innerHTML    = `<span class="badge ${room.status==='vacant'?'badge-vacant':'badge-occupied'}">${room.status==='vacant'?'🔵 Vacant':'🟣 Occupied'}</span>`;
+  document.getElementById('detailRows').innerHTML     = `
+    <div class="detail-row"><div class="dr-label">🏠 Type</div><div class="dr-val">${room.type}</div></div>
+    <div class="detail-row"><div class="dr-label">🏢 Floor</div><div class="dr-val">${room.floor||'—'}</div></div>
+    <div class="detail-row"><div class="dr-label">💰 Rent</div><div class="dr-val" style="color:var(--paid)">${fmt(room.monthlyRent)}/mo</div></div>
+    ${tenant?`<div class="detail-row"><div class="dr-label">👤 Tenant</div><div class="dr-val">${tenant.name}</div></div>`:''}
+  `;
+  document.getElementById('detailActions').innerHTML = `
+    <button class="sub-btn sub-btn-ghost" onclick="deleteRoom('${roomId}')">🗑️ Delete Room</button>
+    ${room.status==='vacant'?`<button class="sub-btn sub-btn-primary" onclick="openAddTenant('${roomId}')">+ Add Tenant</button>`:`<button class="sub-btn btn-danger" onclick="vacateRoom('${roomId}')">Vacate Room</button>`}
+  `;
+  document.getElementById('detailSheet').classList.add('open');
+}
+
+document.getElementById('detailSheet').addEventListener('click',e=>{ if(e.target===document.getElementById('detailSheet')) document.getElementById('detailSheet').classList.remove('open'); });
+
+async function deleteRoom(roomId){
+  const room = allRooms.find(r=>r.id===roomId);
+  showConfirm('🗑️','Delete Room','Delete Room '+room?.number+'? This cannot be undone.',async()=>{
+    await db.collection('pgm_rooms').doc(roomId).delete();
+    document.getElementById('detailSheet').classList.remove('open');
+    toast('Room deleted');
+  });
+}
+
+async function vacateRoom(roomId){
+  const room = allRooms.find(r=>r.id===roomId);
+  const tenant = allTenants.find(t=>t.roomId===roomId);
+  showConfirm('🚪','Vacate Room','Mark Room '+room?.number+' as vacant? Tenant will be set to vacated.',async()=>{
+    await db.collection('pgm_rooms').doc(roomId).update({status:'vacant',tenantId:null,tenantName:null});
+    if(tenant) await db.collection('pgm_tenants').doc(tenant.id).update({status:'vacated',moveOutDate:today()});
+    document.getElementById('detailSheet').classList.remove('open');
+    toast('Room vacated 🚪');
+  });
+}
+
+/* ── TENANTS ── */
+function renderTenants(){
+  const list = document.getElementById('tenantList');
+  if(!allTenants.length){
+    list.innerHTML=`<div class="empty"><div class="empty-icon">👤</div><div class="empty-text">No tenants yet</div><div class="empty-sub">Tap + to add tenants</div></div>`;
+    return;
+  }
+  allTenants.sort((a,b)=>a.name.localeCompare(b.name));
+  list.innerHTML = allTenants.map(t=>`
+    <div class="list-item" onclick="openTenantDetail('${t.id}')">
+      <div class="item-av av-tenant">${initials(t.name)}</div>
+      <div class="item-body">
+        <div class="item-name">${t.name}</div>
+        <div class="item-meta">📞 ${t.phone||'—'} · 📅 Since ${t.moveInDate||'—'}</div>
+      </div>
+      <div class="item-right">
+        <span class="badge badge-occupied">Room ${t.roomNumber}</span>
+        <div style="font-size:12px;color:var(--muted);margin-top:5px;">${fmt(t.monthlyRent)}/mo</div>
+      </div>
+    </div>`).join('');
+}
+
+function openTenantDetail(tenantId){
+  const t = allTenants.find(x=>x.id===tenantId);
+  if(!t) return;
+  currentDetailId = tenantId;
+  document.getElementById('detailAv').textContent    = initials(t.name);
+  document.getElementById('detailAv').style.fontSize = '20px';
+  document.getElementById('detailName').textContent  = t.name;
+  document.getElementById('detailBadge').innerHTML   = `<span class="badge badge-occupied">Room ${t.roomNumber}</span>`;
+  document.getElementById('detailRows').innerHTML    = `
+    <div class="detail-row"><div class="dr-label">📞 Phone</div><div class="dr-val"><a href="tel:${t.phone}" style="color:var(--accent);text-decoration:none;">${t.phone||'—'}</a></div></div>
+    <div class="detail-row"><div class="dr-label">🚪 Room</div><div class="dr-val">${t.roomNumber} (${t.roomType||''})</div></div>
+    <div class="detail-row"><div class="dr-label">📅 Move-In</div><div class="dr-val">${t.moveInDate||'—'}</div></div>
+    <div class="detail-row"><div class="dr-label">💰 Monthly Rent</div><div class="dr-val" style="color:var(--paid)">${fmt(t.monthlyRent)}</div></div>
+    <div class="detail-row"><div class="dr-label">🔒 Deposit</div><div class="dr-val">${fmt(t.deposit)}</div></div>
+  `;
+  document.getElementById('detailActions').innerHTML=`
+    <button class="sub-btn sub-btn-ghost" onclick="deleteTenant('${tenantId}')">🗑️ Remove</button>
+    <button class="sub-btn sub-btn-primary" onclick="openMarkPaid(null,'${tenantId}')">💰 Mark Paid</button>
+  `;
+  document.getElementById('detailSheet').classList.add('open');
+}
+
+async function deleteTenant(tenantId){
+  const t = allTenants.find(x=>x.id===tenantId);
+  showConfirm('🗑️','Remove Tenant','Remove '+t?.name+'? Room will be marked vacant.',async()=>{
+    await db.collection('pgm_tenants').doc(tenantId).update({status:'vacated',moveOutDate:today()});
+    if(t?.roomId) await db.collection('pgm_rooms').doc(t.roomId).update({status:'vacant',tenantId:null,tenantName:null});
+    document.getElementById('detailSheet').classList.remove('open');
+    toast('Tenant removed');
+  });
+}
+
+/* ── RENT ── */
+function updateRentLabel(){
+  document.getElementById('rentMonthLabel').textContent = MONTHS[rentMonth]+' '+rentYear;
+}
+function changeRentMonth(dir){
+  rentMonth+=dir;
+  if(rentMonth>11){rentMonth=0;rentYear++;}
+  if(rentMonth<0) {rentMonth=11;rentYear--;}
+  updateRentLabel();
+  renderRent();
+  renderOwnerDashboard();
+}
+
+async function getMonthPayments(month,year){
+  const snap = await db.collection('pgm_payments')
+    .where('pgId','==',currentPG.id)
+    .where('month','==',month)
+    .where('year','==',year)
+    .get();
+  return snap.docs.map(d=>({id:d.id,...d.data()}));
+}
+
+async function renderRent(){
+  if(!currentPG) return;
+  const payments = await getMonthPayments(rentMonth,rentYear);
+  // Auto-create pending entries for active tenants with no payment
+  for(const tenant of allTenants){
+    const has = payments.find(p=>p.tenantId===tenant.id);
+    if(!has){
+      const ref = await db.collection('pgm_payments').add({
+        pgId:currentPG.id, tenantId:tenant.id, tenantName:tenant.name,
+        roomId:tenant.roomId, roomNumber:tenant.roomNumber,
+        month:rentMonth, year:rentYear, amount:tenant.monthlyRent,
+        status:'pending', paidDate:null, notes:''
+      });
+      payments.push({id:ref.id,pgId:currentPG.id,tenantId:tenant.id,tenantName:tenant.name,roomId:tenant.roomId,roomNumber:tenant.roomNumber,month:rentMonth,year:rentYear,amount:tenant.monthlyRent,status:'pending',paidDate:null,notes:''});
+    }
+  }
+  const paid    = payments.filter(p=>p.status==='paid');
+  const pending = payments.filter(p=>p.status==='pending');
+  const paidAmt = paid.reduce((s,p)=>s+p.amount,0);
+  const totAmt  = payments.reduce((s,p)=>s+p.amount,0);
+  const pct     = totAmt ? Math.round(paidAmt/totAmt*100) : 0;
+  document.getElementById('rentCollected').textContent = fmt(paidAmt);
+  document.getElementById('rentDue').textContent       = fmt(totAmt-paidAmt);
+  document.getElementById('rentBar').style.width       = pct+'%';
+
+  const list = document.getElementById('rentList');
+  if(!payments.length){
+    list.innerHTML=`<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">No tenants for ${MSHORT[rentMonth]}</div></div>`;
+    return;
+  }
+  const sorted = [...paid,...pending];
+  list.innerHTML = sorted.map(p=>`
+    <div class="list-item ${p.status==='paid'?'paid-item':'pending-item'}">
+      <div class="item-av av-tenant">${initials(p.tenantName)}</div>
+      <div class="item-body">
+        <div class="item-name">${p.tenantName}</div>
+        <div class="item-meta">Room ${p.roomNumber}${p.paidDate?' · Paid '+p.paidDate:''}</div>
+      </div>
+      <div class="item-right">
+        <div style="font-size:15px;font-weight:800;font-family:'Syne',sans-serif;">${fmt(p.amount)}</div>
+        ${p.status==='paid'?`<span class="badge badge-paid" style="margin-top:5px;">✅ Paid</span>`:
+          `<button onclick="openMarkPaid('${p.id}')" class="btn btn-sm btn-paid" style="margin-top:6px;">Mark Paid</button>`}
+      </div>
+    </div>`).join('');
+}
+
+/* ── ADD ROOM ── */
+function openAddRoom(){
+  document.getElementById('rNum').value='';
+  document.getElementById('rFloor').value='';
+  document.getElementById('rRent').value='';
+  openModal('AddRoom');
+}
+
+async function saveRoom(){
+  const num   = document.getElementById('rNum').value.trim();
+  const floor = document.getElementById('rFloor').value.trim();
+  const type  = document.getElementById('rType').value;
+  const rent  = parseFloat(document.getElementById('rRent').value)||0;
+  if(!num){ toast('Enter room number'); return; }
+  if(!rent){ toast('Enter monthly rent'); return; }
+  try{
+    await db.collection('pgm_rooms').add({
+      pgId:currentPG.id, number:num, floor, type,
+      monthlyRent:rent, status:'vacant', tenantId:null, tenantName:null,
+      createdAt:firebase.firestore.FieldValue.serverTimestamp()
+    });
+    closeModal('AddRoom');
+    toast('Room '+num+' added! 🚪');
+  }catch(e){ toast('Error: '+e.message); }
+}
+
+/* ── ADD TENANT ── */
+function openAddTenant(preRoomId){
+  const vacantRooms = allRooms.filter(r=>r.status==='vacant');
+  const sel = document.getElementById('tRoomSel');
+  if(!vacantRooms.length){ toast('No vacant rooms! Add a room first.','var(--pending)'); return; }
+  sel.innerHTML = vacantRooms.map(r=>`<option value="${r.id}" ${r.id===preRoomId?'selected':''}>${r.number} — ${r.type} — ${fmt(r.monthlyRent)}/mo</option>`).join('');
+  document.getElementById('tName').value='';
+  document.getElementById('tPhone').value='';
+  document.getElementById('tDeposit').value='';
+  document.getElementById('tRent').value='';
+  document.getElementById('tMoveIn').value=today();
+  document.getElementById('detailSheet').classList.remove('open');
+  openModal('AddTenant');
+}
+
+async function saveTenant(){
+  const name    = document.getElementById('tName').value.trim();
+  const phone   = document.getElementById('tPhone').value.trim();
+  const roomId  = document.getElementById('tRoomSel').value;
+  const moveIn  = document.getElementById('tMoveIn').value||today();
+  const deposit = parseFloat(document.getElementById('tDeposit').value)||0;
+  const room    = allRooms.find(r=>r.id===roomId);
+  const rent    = parseFloat(document.getElementById('tRent').value)||room?.monthlyRent||0;
+  if(!name){ toast('Enter tenant name'); return; }
+  if(!roomId){ toast('Select a room'); return; }
+  try{
+    const tRef = await db.collection('pgm_tenants').add({
+      pgId:currentPG.id, name, phone, roomId, roomNumber:room.number,
+      roomType:room.type, moveInDate:moveIn, deposit, monthlyRent:rent,
+      status:'active', createdAt:firebase.firestore.FieldValue.serverTimestamp()
+    });
+    await db.collection('pgm_rooms').doc(roomId).update({status:'occupied',tenantId:tRef.id,tenantName:name});
+    closeModal('AddTenant');
+    toast(name+' added! 👤');
+  }catch(e){ toast('Error: '+e.message); }
+}
+
+/* ── MARK RENT PAID ── */
+async function openMarkPaid(paymentId, tenantId){
+  document.getElementById('paidDate').value=today();
+  document.getElementById('paidNote').value='';
+  if(paymentId){
+    pendingMarkPaid = {paymentId};
+    const snap = await db.collection('pgm_payments').doc(paymentId).get();
+    const p = snap.data();
+    document.getElementById('markPaidTitle').textContent    = '💰 Mark Rent Paid — '+MONTHS[p.month]+' '+p.year;
+    document.getElementById('markPaidTenantName').textContent = p.tenantName;
+    document.getElementById('markPaidAmount').textContent   = fmt(p.amount);
+  } else if(tenantId){
+    const t = allTenants.find(x=>x.id===tenantId);
+    pendingMarkPaid = {tenantId, amount:t?.monthlyRent};
+    document.getElementById('markPaidTitle').textContent    = '💰 Mark Rent Paid — '+MONTHS[rentMonth]+' '+rentYear;
+    document.getElementById('markPaidTenantName').textContent = t?.name||'—';
+    document.getElementById('markPaidAmount').textContent   = fmt(t?.monthlyRent||0);
+  }
+  document.getElementById('detailSheet').classList.remove('open');
+  openModal('MarkPaid');
+}
+
+async function confirmMarkPaid(){
+  const paidDate = document.getElementById('paidDate').value||today();
+  const notes    = document.getElementById('paidNote').value.trim();
+  try{
+    if(pendingMarkPaid?.paymentId){
+      await db.collection('pgm_payments').doc(pendingMarkPaid.paymentId).update({status:'paid',paidDate,notes});
+    } else if(pendingMarkPaid?.tenantId){
+      const t = allTenants.find(x=>x.id===pendingMarkPaid.tenantId);
+      // upsert payment record
+      const snap = await db.collection('pgm_payments')
+        .where('pgId','==',currentPG.id).where('tenantId','==',t.id)
+        .where('month','==',rentMonth).where('year','==',rentYear).limit(1).get();
+      if(!snap.empty){ await snap.docs[0].ref.update({status:'paid',paidDate,notes}); }
+      else {
+        await db.collection('pgm_payments').add({
+          pgId:currentPG.id,tenantId:t.id,tenantName:t.name,
+          roomId:t.roomId,roomNumber:t.roomNumber,month:rentMonth,year:rentYear,
+          amount:t.monthlyRent,status:'paid',paidDate,notes
+        });
+      }
+    }
+    pendingMarkPaid=null;
+    closeModal('MarkPaid');
+    toast('Payment recorded! ✅');
+    renderRent();
+    renderOwnerDashboard();
+  }catch(e){ toast('Error: '+e.message); }
+}
+</script>
+</body>
+</html>
